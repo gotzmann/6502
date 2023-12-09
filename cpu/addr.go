@@ -40,7 +40,7 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeZp:
-		addr := uint16(cpu.mem.Read(cpu.PC))
+		addr := uint16(cpu.RAM.Read(cpu.PC))
 		cpu.PC++
 
 		return operand{
@@ -49,7 +49,7 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeZpX:
-		addr := (uint16(cpu.mem.Read(cpu.PC)) + uint16(cpu.X)) & 0x00FF
+		addr := (uint16(cpu.RAM.Read(cpu.PC)) + uint16(cpu.X)) & 0x00FF
 		cpu.PC++
 
 		return operand{
@@ -58,7 +58,7 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeZpY:
-		addr := (uint16(cpu.mem.Read(cpu.PC)) + uint16(cpu.Y)) & 0x00FF
+		addr := (uint16(cpu.RAM.Read(cpu.PC)) + uint16(cpu.Y)) & 0x00FF
 		cpu.PC++
 
 		return operand{
@@ -67,7 +67,7 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeAbs:
-		addr := readWord(cpu.mem, cpu.PC)
+		addr := readWord(cpu.RAM, cpu.PC)
 		cpu.PC += 2
 
 		return operand{
@@ -76,7 +76,7 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeAbsX:
-		addr := readWord(cpu.mem, cpu.PC)
+		addr := readWord(cpu.RAM, cpu.PC)
 		cpu.PC += 2
 
 		addrX := addr + uint16(cpu.X)
@@ -89,7 +89,7 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeAbsY:
-		addr := readWord(cpu.mem, cpu.PC)
+		addr := readWord(cpu.RAM, cpu.PC)
 		cpu.PC += 2
 
 		addrY := addr + uint16(cpu.Y)
@@ -102,8 +102,8 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeInd:
-		ptrAddr := readWord(cpu.mem, cpu.PC)
-		addr := readWordBug(cpu.mem, ptrAddr)
+		ptrAddr := readWord(cpu.RAM, cpu.PC)
+		addr := readWordBug(cpu.RAM, ptrAddr)
 		cpu.PC += 2
 
 		return operand{
@@ -112,8 +112,8 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeIndX:
-		ptrAddr := (uint16(cpu.mem.Read(cpu.PC)) + uint16(cpu.X)) & 0x00FF
-		addr := readWordBug(cpu.mem, ptrAddr)
+		ptrAddr := (uint16(cpu.RAM.Read(cpu.PC)) + uint16(cpu.X)) & 0x00FF
+		addr := readWordBug(cpu.RAM, ptrAddr)
 		cpu.PC++
 
 		return operand{
@@ -122,10 +122,10 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeIndY:
-		ptrAddr := uint16(cpu.mem.Read(cpu.PC))
+		ptrAddr := uint16(cpu.RAM.Read(cpu.PC))
 		cpu.PC++
 
-		addr := readWordBug(cpu.mem, ptrAddr)
+		addr := readWordBug(cpu.RAM, ptrAddr)
 		addrY := addr + uint16(cpu.Y)
 		pageCross := addrY&0xFF00 != addr&0xFF00
 
@@ -136,7 +136,7 @@ func (cpu *CPU) fetch(mode AddrMode) operand {
 		}
 
 	case AddrModeRel:
-		rel := uint16(cpu.mem.Read(cpu.PC))
+		rel := uint16(cpu.RAM.Read(cpu.PC))
 		cpu.PC++
 
 		if rel&(1<<7) != 0 {

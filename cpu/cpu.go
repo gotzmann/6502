@@ -22,12 +22,12 @@ type CPU struct {
 	Halt         int    // Number of cycles to wait
 
 	interrupt Interrupt
-	mem       Memory // FIXME: Pointer?
+	RAM       Memory // FIXME: Pointer?
 }
 
 func New(mem Memory) *CPU {
 	return &CPU{
-		mem: mem,
+		RAM: mem,
 	}
 }
 
@@ -95,14 +95,14 @@ func (cpu *CPU) carried() uint8 {
 
 // push pushes a byte onto the stack.
 func (cpu *CPU) push(data uint8) {
-	cpu.mem.Write(0x0100|uint16(cpu.SP), data)
+	cpu.RAM.Write(0x0100|uint16(cpu.SP), data)
 	cpu.SP--
 }
 
 // pop pops a byte from the stack.
 func (cpu *CPU) pop() uint8 {
 	cpu.SP++
-	return cpu.mem.Read(0x0100 | uint16(cpu.SP))
+	return cpu.RAM.Read(0x0100 | uint16(cpu.SP))
 }
 
 // pushWord pushes a word onto the stack in little-endian order.
@@ -122,7 +122,7 @@ func (cpu *CPU) popWord() uint16 {
 /*
 // fetchOpcode reads the next opcode from memory and increments the program counter.
 func (cpu *CPU) fetchOpcode() uint8 {
-	opcode := cpu.mem.Read(cpu.PC)
+	opcode := cpu.RAM.Read(cpu.PC)
 	cpu.PC++
 
 	return opcode
@@ -131,7 +131,7 @@ func (cpu *CPU) fetchOpcode() uint8 {
 // Reset resets the CPU to its initial state. To match the behaviour of the real
 // CPU, the next 6 cycles are skipped after a reset.
 func (cpu *CPU) Reset() {
-	cpu.PC = readWord(cpu.mem, vecReset)
+	cpu.PC = readWord(cpu.RAM, vecReset)
 	cpu.SP = 0xFD
 	cpu.P = 0x24
 	cpu.A = 0
@@ -148,7 +148,7 @@ func (cpu *CPU) nmi() {
 	cpu.pushWord(cpu.PC)
 	cpu.push(uint8(cpu.P))
 	cpu.setFlag(flagInterrupt, true)
-	cpu.PC = readWord(cpu.mem, vecNMI)
+	cpu.PC = readWord(cpu.RAM, vecNMI)
 	cpu.Halt += 7
 }
 
@@ -161,7 +161,7 @@ func (cpu *CPU) irq() {
 	cpu.pushWord(cpu.PC)
 	cpu.push(uint8(cpu.P))
 	cpu.setFlag(flagInterrupt, true)
-	cpu.PC = readWord(cpu.mem, vecIRQ)
+	cpu.PC = readWord(cpu.RAM, vecIRQ)
 	cpu.Halt += 7
 }
 
@@ -201,7 +201,7 @@ func (cpu *CPU) Tick() bool {
 	//)
 	ok := false
 	instr := Instruction{}
-	opcode := cpu.mem.Read(cpu.PC)
+	opcode := cpu.RAM.Read(cpu.PC)
 	cpu.PC++
 
 	if instr, ok = Instructions[opcode]; !ok {
@@ -211,9 +211,9 @@ func (cpu *CPU) Tick() bool {
 	opr := cpu.fetch(instr.AddrMode)
 	ok = cpu.execute(instr, opr)
 
-	if !ok && cpu.AllowIllegal {
-		ok = cpu.executeIllegal(cpu.mem, instr, opr)
-	}
+	//	if !ok && cpu.AllowIllegal {
+	//		ok = cpu.executeIllegal(cpu.RAM, instr, opr)
+	//	}
 
 	if !ok {
 		panic(fmt.Sprintf("invalid instruction: %s", instr.Name))

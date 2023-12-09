@@ -5,115 +5,141 @@ func (cpu *CPU) execute(instr Instruction, arg operand) bool {
 	case "NOP":
 		// do nothing
 	case "LDA":
-		cpu.lda(cpu.mem, arg)
+		cpu.lda(cpu.RAM, arg)
 	case "STA":
-		cpu.sta(cpu.mem, arg)
+		cpu.sta(cpu.RAM, arg)
 	case "LDX":
-		cpu.ldx(cpu.mem, arg)
+		cpu.ldx(cpu.RAM, arg)
 	case "STX":
-		cpu.stx(cpu.mem, arg)
+		cpu.stx(cpu.RAM, arg)
 	case "LDY":
-		cpu.ldy(cpu.mem, arg)
+		cpu.ldy(cpu.RAM, arg)
 	case "STY":
-		cpu.sty(cpu.mem, arg)
+		cpu.sty(cpu.RAM, arg)
 	case "TAX":
-		cpu.tax(cpu.mem, arg)
+		cpu.tax(cpu.RAM, arg)
 	case "TXA":
-		cpu.txa(cpu.mem, arg)
+		cpu.txa(cpu.RAM, arg)
 	case "TAY":
-		cpu.tay(cpu.mem, arg)
+		cpu.tay(cpu.RAM, arg)
 	case "TYA":
-		cpu.tya(cpu.mem, arg)
+		cpu.tya(cpu.RAM, arg)
 	case "TSX":
-		cpu.tsx(cpu.mem, arg)
+		cpu.tsx(cpu.RAM, arg)
 	case "TXS":
-		cpu.txs(cpu.mem, arg)
+		cpu.txs(cpu.RAM, arg)
 	case "PHA":
-		cpu.pha(cpu.mem, arg)
+		cpu.pha(cpu.RAM, arg)
 	case "PLA":
-		cpu.pla(cpu.mem, arg)
+		cpu.pla(cpu.RAM, arg)
 	case "PHP":
-		cpu.php(cpu.mem, arg)
+		cpu.php(cpu.RAM, arg)
 	case "PLP":
-		cpu.plp(cpu.mem, arg)
+		cpu.plp(cpu.RAM, arg)
 	case "ADC":
-		cpu.adc(cpu.mem, arg)
+		cpu.adc(cpu.RAM, arg)
 	case "SBC":
-		cpu.sbc(cpu.mem, arg)
+		cpu.sbc(cpu.RAM, arg)
 	case "AND":
-		cpu.and(cpu.mem, arg)
+		cpu.and(cpu.RAM, arg)
 	case "ORA":
-		cpu.ora(cpu.mem, arg)
+		cpu.ora(cpu.RAM, arg)
 	case "EOR":
-		cpu.eor(cpu.mem, arg)
+		cpu.eor(cpu.RAM, arg)
 	case "CMP":
-		cpu.cmp(cpu.mem, arg)
+		cpu.cmp(cpu.RAM, arg)
 	case "CPX":
-		cpu.cpx(cpu.mem, arg)
+		cpu.cpx(cpu.RAM, arg)
 	case "CPY":
-		cpu.cpy(cpu.mem, arg)
+		cpu.cpy(cpu.RAM, arg)
 	case "INC":
-		cpu.inc(cpu.mem, arg)
+		cpu.inc(cpu.RAM, arg)
 	case "DEC":
-		cpu.dec(cpu.mem, arg)
+		cpu.dec(cpu.RAM, arg)
 	case "INX":
-		cpu.inx(cpu.mem, arg)
+		cpu.inx(cpu.RAM, arg)
 	case "DEX":
-		cpu.dex(cpu.mem, arg)
+		cpu.dex(cpu.RAM, arg)
 	case "INY":
-		cpu.iny(cpu.mem, arg)
+		cpu.iny(cpu.RAM, arg)
 	case "DEY":
-		cpu.dey(cpu.mem, arg)
+		cpu.dey(cpu.RAM, arg)
 	case "ASL":
-		cpu.asl(cpu.mem, arg)
+		cpu.asl(cpu.RAM, arg)
 	case "LSR":
-		cpu.lsr(cpu.mem, arg)
+		cpu.lsr(cpu.RAM, arg)
 	case "ROL":
-		cpu.rol(cpu.mem, arg)
+		cpu.rol(cpu.RAM, arg)
 	case "ROR":
-		cpu.ror(cpu.mem, arg)
+		cpu.ror(cpu.RAM, arg)
 	case "BIT":
-		cpu.bit(cpu.mem, arg)
+		cpu.bit(cpu.RAM, arg)
 	case "BCC":
-		cpu.bcc(cpu.mem, arg)
+		cpu.bcc(cpu.RAM, arg)
 	case "BCS":
-		cpu.bcs(cpu.mem, arg)
+		cpu.bcs(cpu.RAM, arg)
 	case "BEQ":
-		cpu.beq(cpu.mem, arg)
+		cpu.beq(cpu.RAM, arg)
 	case "BMI":
-		cpu.bmi(cpu.mem, arg)
+		cpu.bmi(cpu.RAM, arg)
 	case "BNE":
-		cpu.bne(cpu.mem, arg)
+		cpu.bne(cpu.RAM, arg)
 	case "BPL":
-		cpu.bpl(cpu.mem, arg)
+		cpu.bpl(cpu.RAM, arg)
 	case "BVC":
-		cpu.bvc(cpu.mem, arg)
+		cpu.bvc(cpu.RAM, arg)
 	case "BVS":
-		cpu.bvs(cpu.mem, arg)
+		cpu.bvs(cpu.RAM, arg)
 	case "CLC":
-		cpu.clc(cpu.mem, arg)
+		cpu.clc(cpu.RAM, arg)
 	case "CLD":
-		cpu.cld(cpu.mem, arg)
+		cpu.cld(cpu.RAM, arg)
 	case "CLI":
-		cpu.cli(cpu.mem, arg)
+		cpu.cli(cpu.RAM, arg)
 	case "CLV":
-		cpu.clv(cpu.mem, arg)
+		cpu.clv(cpu.RAM, arg)
 	case "SEC":
-		cpu.sec(cpu.mem, arg)
+		cpu.sec(cpu.RAM, arg)
 	case "SED":
-		cpu.sed(cpu.mem, arg)
+		cpu.sed(cpu.RAM, arg)
 	case "SEI":
-		cpu.sei(cpu.mem, arg)
+		cpu.sei(cpu.RAM, arg)
 	case "BRK":
-		cpu.brk(cpu.mem, arg)
+		cpu.brk(cpu.RAM, arg)
 	case "RTI":
-		cpu.rti(cpu.mem, arg)
+		cpu.rti(cpu.RAM, arg)
 	case "JMP":
-		cpu.jmp(cpu.mem, arg)
+		cpu.jmp(cpu.RAM, arg)
 	case "JSR":
-		cpu.jsr(cpu.mem, arg)
+		cpu.jsr(cpu.RAM, arg)
 	case "RTS":
-		cpu.rts(cpu.mem, arg)
+		cpu.rts(cpu.RAM, arg)
+
+	// -- illegal ?! opcodes
+
+	case "*DCP":
+		cpu.dcp(cpu.RAM, arg)
+	case "*ISB":
+		cpu.isb(cpu.RAM, arg)
+	case "*SLO":
+		cpu.slo(cpu.RAM, arg)
+	case "*RLA":
+		cpu.rla(cpu.RAM, arg)
+	case "*SRE":
+		cpu.sre(cpu.RAM, arg)
+	case "*RRA":
+		cpu.rra(cpu.RAM, arg)
+	case "*LAX":
+		cpu.lax(cpu.RAM, arg)
+	case "*SAX":
+		cpu.sax(cpu.RAM, arg)
+	case "*SBC": // USBC
+		cpu.sbc(cpu.RAM, arg)
+	case "*NOP":
+		cpu.nop(cpu.RAM, arg)
+	case "???":
+		cpu.nop(cpu.RAM, arg)
+
 	default:
 		return false
 	}
@@ -581,4 +607,114 @@ func (cpu *CPU) rti(mem Memory, arg operand) {
 	cpu.P = Flags(cpu.pop())&0xEF | 0x20
 	cpu.setFlag(flagBreak, false)
 	cpu.PC = cpu.popWord()
+}
+
+// -- Illegal ?! opcodes
+
+func (cpu *CPU) nop(mem Memory, arg operand) {
+	if arg.pageCross {
+		cpu.Halt += 1
+	}
+}
+
+// dcp is dec + cmp
+func (cpu *CPU) dcp(mem Memory, arg operand) {
+	data := mem.Read(arg.addr) - 1
+	mem.Write(arg.addr, data)
+
+	data2 := uint16(cpu.A) - uint16(data)
+	cpu.setFlag(flagCarry, data2 < 0x100)
+	cpu.setZN(uint8(data2))
+}
+
+// isb is inc + sbc
+func (cpu *CPU) isb(mem Memory, arg operand) {
+	var (
+		data = mem.Read(arg.addr) + 1
+		a    = uint16(cpu.A)
+		b    = uint16(data)
+	)
+
+	r := a - b - uint16(1-cpu.carried())
+	overflow := (a^b)&0x80 != 0 && (a^r)&0x80 != 0
+
+	mem.Write(arg.addr, data)
+	cpu.setFlag(flagCarry, r < 0x100)
+	cpu.setFlag(flagOverflow, overflow)
+	cpu.A = uint8(r)
+	cpu.setZN(cpu.A)
+}
+
+// lax is lda + ldx
+func (cpu *CPU) lax(mem Memory, arg operand) {
+	data := mem.Read(arg.addr)
+	cpu.A, cpu.X = data, data
+	cpu.setZN(cpu.X)
+
+	if arg.pageCross {
+		cpu.Halt += 1
+	}
+}
+
+// rla is rol + and
+func (cpu *CPU) rla(mem Memory, arg operand) {
+	data := mem.Read(arg.addr)
+	carr := cpu.carried()
+
+	cpu.setFlag(flagCarry, data&0x80 != 0)
+	data = (data << 1) | carr
+	mem.Write(arg.addr, data)
+	cpu.A &= data
+	cpu.setZN(cpu.A)
+}
+
+// sax is sta + stx
+func (cpu *CPU) sax(mem Memory, arg operand) {
+	data := cpu.A & cpu.X
+	mem.Write(arg.addr, data)
+}
+
+// slo is asl + ora
+func (cpu *CPU) slo(mem Memory, arg operand) {
+	data := mem.Read(arg.addr)
+	cpu.setFlag(flagCarry, data&0x80 != 0)
+
+	data <<= 1
+	mem.Write(arg.addr, data)
+
+	cpu.A |= data
+	cpu.setZN(cpu.A)
+}
+
+// sre is lsr + eor
+func (cpu *CPU) sre(mem Memory, arg operand) {
+	data := mem.Read(arg.addr)
+	cpu.setFlag(flagCarry, data&0x01 != 0)
+
+	data >>= 1
+	mem.Write(arg.addr, data)
+
+	cpu.A ^= data
+	cpu.setZN(cpu.A)
+}
+
+// rra is ror + adc
+func (cpu *CPU) rra(mem Memory, arg operand) {
+	data := mem.Read(arg.addr)
+	carr := cpu.carried()
+
+	// ror
+	cpu.setFlag(flagCarry, data&0x01 != 0)
+	data = data>>1 | carr<<7
+	mem.Write(arg.addr, data)
+
+	// adc
+	a, b := uint16(cpu.A), uint16(data)
+	r := a + b + uint16(cpu.carried())
+	overflow := (a^b)&0x80 == 0 && (a^r)&0x80 != 0
+
+	cpu.setFlag(flagOverflow, overflow)
+	cpu.setFlag(flagCarry, r > 0xFF)
+	cpu.A = uint8(r)
+	cpu.setZN(cpu.A)
 }
