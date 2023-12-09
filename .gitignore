@@ -2,6 +2,7 @@
 .vscode
 launch.json
 __debug_bin
+.DS_Store
 
 *.exe
 *.exe~

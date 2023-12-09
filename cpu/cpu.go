@@ -4,6 +4,27 @@ import (
 	"fmt"
 )
 
+/*
+void CPU::Reset()
+
+	{
+	    if(m_callbacks)
+	    {
+	        m_callbacks->OnReset();
+	    }
+	    A = X = Y    = 0;
+	    F            = CPU::IGNORED_FLAG;
+	    S            = 0xFF;
+	    PC           = m_RAM->GetW(0xFFFC);
+	    BRK          = 0xFFFC;
+	    m_cycles     = 0;
+	    m_seconds    = 0;
+	    m_irqPending = false;
+	    m_nmiPending = false;
+	    m_callStack.clear();
+	    m_callStack.push_back(make_pair(PC, "Entry"));
+	}
+*/
 type CPU struct {
 
 	// -- 6502 registers
@@ -17,12 +38,13 @@ type CPU struct {
 
 	// --
 
-	AllowIllegal bool   // Handle illegal opcodes
-	Cycles       uint64 // Number of cycles executed
-	Halt         int    // Number of cycles to wait
+	RAM Memory // FIXME: Pointer?
+
+	// AllowIllegal bool   // Handle illegal opcodes
+	Cycles uint64 // Number of cycles executed
+	Halt   int    // Number of cycles to wait
 
 	interrupt Interrupt
-	RAM       Memory // FIXME: Pointer?
 }
 
 func New(mem Memory) *CPU {
@@ -37,12 +59,40 @@ type (
 	Interrupt int
 )
 
+/*
+
+Naming From ASM Functional Tests
+
+000000r 1               carry   equ %00000001   ;flag bits in status
+000000r 1               zero    equ %00000010
+000000r 1               intdis  equ %00000100
+000000r 1               decmode equ %00001000
+000000r 1               break   equ %00010000
+000000r 1               reserv  equ %00100000
+000000r 1               overfl  equ %01000000
+000000r 1               minus   equ %10000000
+*/
+
+/*
+https://www.masswerk.at/6502/6502_instruction_set.html#description
+SR Flags (bit 7 to bit 0)
+N	Negative
+V	Overflow
+-	ignored
+B	Break
+D	Decimal (use BCD for arithmetics)
+I	Interrupt (IRQ disable)
+Z	Zero
+C	Carry
+*/
+
 const (
 	flagCarry     Flags = 1 << 0
 	flagZero            = 1 << 1
 	flagInterrupt       = 1 << 2
 	flagDecimal         = 1 << 3
 	flagBreak           = 1 << 4
+	flagReserved        = 1 << 5
 	flagOverflow        = 1 << 6
 	flagNegative        = 1 << 7
 )
@@ -132,11 +182,11 @@ func (cpu *CPU) fetchOpcode() uint8 {
 // CPU, the next 6 cycles are skipped after a reset.
 func (cpu *CPU) Reset() {
 	cpu.PC = readWord(cpu.RAM, vecReset)
-	cpu.SP = 0xFD
+	cpu.SP = 0xFD // FIXME: Research needed: http://forum.6502.org/viewtopic.php?p=2959
 	cpu.P = 0x24
-	cpu.A = 0
-	cpu.X = 0
-	cpu.Y = 0
+	cpu.A = 0x00
+	cpu.X = 0x00
+	cpu.Y = 0x00
 
 	cpu.Cycles = 0
 	cpu.Halt = 6
@@ -207,6 +257,23 @@ func (cpu *CPU) Tick() bool {
 	if instr, ok = Instructions[opcode]; !ok {
 		panic(fmt.Sprintf("unknown opcode: %02X", opcode))
 	}
+
+	// -- DEBUG
+
+	bytes := fmt.Sprintf("%02X", cpu.RAM.Read(cpu.PC-1))
+	operands := "        "
+	if instr.Size == 2 {
+		bytes += fmt.Sprintf("%02X", cpu.RAM.Read(cpu.PC))
+		operands = fmt.Sprintf(" $%02X    ", cpu.RAM.Read(cpu.PC))
+	} else if instr.Size == 3 {
+		bytes += fmt.Sprintf("%02X", cpu.RAM.Read(cpu.PC))
+		bytes += fmt.Sprintf("%02X", cpu.RAM.Read(cpu.PC+1))
+		// remember of Little Endian
+		operands = fmt.Sprintf(" $%02X", cpu.RAM.Read(cpu.PC+1))
+		operands += fmt.Sprintf("%02X", cpu.RAM.Read(cpu.PC))
+	}
+
+	fmt.Printf("\n%04X : %s\t%s%s\t# %04d", cpu.PC-1, bytes, instr.Name, operands, cpu.Cycles)
 
 	opr := cpu.fetch(instr.AddrMode)
 	ok = cpu.execute(instr, opr)

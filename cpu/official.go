@@ -149,8 +149,28 @@ func (cpu *CPU) execute(instr Instruction, arg operand) bool {
 
 // lda loads the accumulator with a value from memory.
 func (cpu *CPU) lda(mem Memory, arg operand) {
+	/*
+			fmt.Printf("\n\n== LDA ======================================================")
+			for page := 0; page < 3; page++ {
+				fmt.Printf("\n")
+				for x := 0; x < 16; x++ {
+					fmt.Printf("\n%04X : ", page*256+x*16)
+					for y := 0; y < 16; y++ {
+						if y%4 == 0 {
+							fmt.Printf(" ")
+						}
+						fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
+					}
+				}
+			}
+			fmt.Printf("\n\n=============================================================\n")
+
+		fmt.Printf("\n[ LDA ] BEFORE A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
+	*/
 	cpu.A = mem.Read(arg.addr)
 	cpu.setZN(cpu.A)
+
+	// fmt.Printf("\n[ LDA ]  AFTER A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
 
 	if arg.pageCross {
 		cpu.Halt++
@@ -218,8 +238,31 @@ func (cpu *CPU) tya(mem Memory, arg operand) {
 
 // tsx transfers the stack pointer to the X register.
 func (cpu *CPU) tsx(mem Memory, arg operand) {
+
+	// https://retrocomputing.stackexchange.com/questions/15695/does-the-6502s-txs-and-tsx-affect-flags-or-not
+
 	cpu.X = cpu.SP
 	cpu.setZN(cpu.X)
+	/*
+	   fmt.Printf("\n[ TSX ] SP : %02X | X : %02X", cpu.SP, cpu.X)
+
+	   fmt.Printf("\n\n== TSX ======================================================")
+
+	   	for page := 0; page < 3; page++ {
+	   		fmt.Printf("\n")
+	   		for x := 0; x < 16; x++ {
+	   			fmt.Printf("\n%04X : ", page*256+x*16)
+	   			for y := 0; y < 16; y++ {
+	   				if y%4 == 0 {
+	   					fmt.Printf(" ")
+	   				}
+	   				fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
+	   			}
+	   		}
+	   	}
+
+	   fmt.Printf("\n\n=============================================================\n")
+	*/
 }
 
 // txs transfers the X register to the stack pointer.
@@ -234,13 +277,46 @@ func (cpu *CPU) pha(mem Memory, arg operand) {
 
 // pla pops a value from the stack into the accumulator.
 func (cpu *CPU) pla(mem Memory, arg operand) {
+	// fmt.Printf("\n[ PLA ] BEFORE SP : %02X | A : %02X | FLAGS : %02X", cpu.SP, cpu.A, cpu.P)
+
 	cpu.A = cpu.pop()
 	cpu.setZN(cpu.A)
+
+	// fmt.Printf("\n[ PLA ] AFTER SP : %02X | A : %02X | FLAGS : %02X", cpu.SP, cpu.A, cpu.P)
 }
 
 // php pushes the processor status onto the stack.
 func (cpu *CPU) php(mem Memory, arg operand) {
-	cpu.push(uint8(cpu.P) | 0x10)
+
+	// fmt.Printf("\n[ PHP ] BEFORE SP : %02X | P : %02X", cpu.SP, cpu.P)
+
+	// WAS: cpu.push(uint8(cpu.P) | 0x10)
+
+	// PHP - Push Processor Status on Stack
+	// The status register will be pushed with the break flag and bit 5 set to 1.
+	// https://www.masswerk.at/6502/6502_instruction_set.html#PHP
+
+	cpu.push(uint8(cpu.P) | flagReserved | flagBreak)
+	/*
+	   fmt.Printf("\n[ PHP ] AFTER SP : %02X | P : %02X", cpu.SP, cpu.P)
+
+	   	fmt.Printf("\n\n== PHP ======================================================")
+
+	   		for page := 0; page < 3; page++ {
+	   			fmt.Printf("\n")
+	   			for x := 0; x < 16; x++ {
+	   				fmt.Printf("\n%04X : ", page*256+x*16)
+	   				for y := 0; y < 16; y++ {
+	   					if y%4 == 0 {
+	   						fmt.Printf(" ")
+	   					}
+	   					fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
+	   				}
+	   			}
+	   		}
+
+	   	fmt.Printf("\n\n=============================================================\n")
+	*/
 }
 
 // plp pops a value from the stack into the processor status.
@@ -442,6 +518,8 @@ func (cpu *CPU) cmp(mem Memory, arg operand) {
 	cpu.setFlag(flagCarry, data < 0x100)
 	cpu.setZN(uint8(data))
 
+	// fmt.Printf("\n[ CMP ] A : %02X | %04X : %02X | A - MEM = %02X", cpu.A, arg.addr, mem.Read(arg.addr), uint8(data))
+
 	if arg.pageCross {
 		cpu.Halt++
 	}
@@ -526,6 +604,8 @@ func (cpu *CPU) bmi(mem Memory, arg operand) {
 }
 
 func (cpu *CPU) bne(mem Memory, arg operand) {
+	// fmt.Printf("\n[ BNE ] PC : %4X => %4X, zero = %v", cpu.PC, arg.addr, cpu.getFlag(flagZero))
+
 	if !cpu.getFlag(flagZero) {
 		cpu.PC = arg.addr
 		cpu.Halt += 1
@@ -570,9 +650,48 @@ func (cpu *CPU) bvs(mem Memory, arg operand) {
 }
 
 func (cpu *CPU) brk(mem Memory, arg operand) {
-	cpu.pushWord(cpu.PC)
-	cpu.push(uint8(cpu.P & flagBreak))
+
+	// fmt.Printf("\n[ BRK ] BEFORE PC : %04X | FLAGS : %02X", cpu.PC, cpu.P)
+
+	// The return address pushed to the stack is PC+2,
+	// providing an extra byte of spacing for a break mark
+	// (identifying a reason for the break.)
+	// https://www.masswerk.at/6502/6502_instruction_set.html#BRK
+
+	// A hardware bug originally caused it to push the PC+2 address on the return stack.
+	// As a result, later versions of the 6502 documentation suggests using BRK as a means of invoking
+	// operating system functionality, where the byte following the BRK opcode is used as a function number.
+	// http://forum.6502.org/viewtopic.php?t=24
+
+	// WAS: cpu.pushWord(cpu.PC)
+	cpu.pushWord(cpu.PC + 1)
+	// WAS: cpu.push(uint8(cpu.P & flagBreak))
+	cpu.push(uint8(cpu.P | flagBreak))
 	cpu.PC = readWord(mem, vecIRQ)
+
+	// Again, remember also that the interrupt-disable bit I gets set in the interrupt sequence after P is pushed
+	// http://6502.org/tutorials/interrupts.html
+	cpu.P = cpu.P | flagInterrupt
+	/*
+	   fmt.Printf("\n[ BRK ]  AFTER PC : %04X | vecIRQ : %04X | FLAGS : %02X", cpu.PC, vecIRQ, cpu.P)
+
+	   	fmt.Printf("\n\n== BRK ======================================================")
+
+	   		for page := 0; page < 3; page++ {
+	   			fmt.Printf("\n")
+	   			for x := 0; x < 16; x++ {
+	   				fmt.Printf("\n%04X : ", page*256+x*16)
+	   				for y := 0; y < 16; y++ {
+	   					if y%4 == 0 {
+	   						fmt.Printf(" ")
+	   					}
+	   					fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
+	   				}
+	   			}
+	   		}
+
+	   	fmt.Printf("\n\n=============================================================\n")
+	*/
 }
 
 func (cpu *CPU) clc(mem Memory, arg operand) {
