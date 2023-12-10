@@ -1,5 +1,10 @@
 package cpu
 
+import (
+	"fmt"
+	"strconv"
+)
+
 func (cpu *CPU) execute(instr Instruction, arg operand) bool {
 	switch instr.Name {
 	case "NOP":
@@ -150,27 +155,27 @@ func (cpu *CPU) execute(instr Instruction, arg operand) bool {
 // lda loads the accumulator with a value from memory.
 func (cpu *CPU) lda(mem Memory, arg operand) {
 	/*
-			fmt.Printf("\n\n== LDA ======================================================")
-			for page := 0; page < 3; page++ {
-				fmt.Printf("\n")
-				for x := 0; x < 16; x++ {
-					fmt.Printf("\n%04X : ", page*256+x*16)
-					for y := 0; y < 16; y++ {
-						if y%4 == 0 {
-							fmt.Printf(" ")
-						}
-						fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
+		fmt.Printf("\n\n== LDA ======================================================")
+		for page := 0; page < 3; page++ {
+			fmt.Printf("\n")
+			for x := 0; x < 16; x++ {
+				fmt.Printf("\n%04X : ", page*256+x*16)
+				for y := 0; y < 16; y++ {
+					if y%4 == 0 {
+						fmt.Printf(" ")
 					}
+					fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
 				}
 			}
-			fmt.Printf("\n\n=============================================================\n")
-
-		fmt.Printf("\n[ LDA ] BEFORE A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
+		}
+		fmt.Printf("\n\n=============================================================\n")
 	*/
+	fmt.Printf("\n[ LDA ] BEFORE A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
+
 	cpu.A = mem.Read(arg.addr)
 	cpu.setZN(cpu.A)
 
-	// fmt.Printf("\n[ LDA ]  AFTER A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
+	fmt.Printf("\n[ LDA ]  AFTER A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
 
 	if arg.pageCross {
 		cpu.Halt++
@@ -288,7 +293,7 @@ func (cpu *CPU) pla(mem Memory, arg operand) {
 // php pushes the processor status onto the stack.
 func (cpu *CPU) php(mem Memory, arg operand) {
 
-	// fmt.Printf("\n[ PHP ] BEFORE SP : %02X | P : %02X", cpu.SP, cpu.P)
+	fmt.Printf("\n[ PHP ] BEFORE SP : %02X | P : %02X", cpu.SP, cpu.P)
 
 	// WAS: cpu.push(uint8(cpu.P) | 0x10)
 
@@ -297,25 +302,25 @@ func (cpu *CPU) php(mem Memory, arg operand) {
 	// https://www.masswerk.at/6502/6502_instruction_set.html#PHP
 
 	cpu.push(uint8(cpu.P) | flagReserved | flagBreak)
+
+	fmt.Printf("\n[ PHP ] AFTER SP : %02X | P : %02X", cpu.SP, cpu.P)
 	/*
-	   fmt.Printf("\n[ PHP ] AFTER SP : %02X | P : %02X", cpu.SP, cpu.P)
+	   fmt.Printf("\n\n== PHP ======================================================")
 
-	   	fmt.Printf("\n\n== PHP ======================================================")
-
-	   		for page := 0; page < 3; page++ {
-	   			fmt.Printf("\n")
-	   			for x := 0; x < 16; x++ {
-	   				fmt.Printf("\n%04X : ", page*256+x*16)
-	   				for y := 0; y < 16; y++ {
-	   					if y%4 == 0 {
-	   						fmt.Printf(" ")
-	   					}
-	   					fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
+	   	for page := 0; page < 3; page++ {
+	   		fmt.Printf("\n")
+	   		for x := 0; x < 16; x++ {
+	   			fmt.Printf("\n%04X : ", page*256+x*16)
+	   			for y := 0; y < 16; y++ {
+	   				if y%4 == 0 {
+	   					fmt.Printf(" ")
 	   				}
+	   				fmt.Printf("%02X ", cpu.RAM.Read(uint16(page*256+x*16+y)))
 	   			}
 	   		}
+	   	}
 
-	   	fmt.Printf("\n\n=============================================================\n")
+	   fmt.Printf("\n\n=============================================================\n")
 	*/
 }
 
@@ -365,19 +370,49 @@ func (cpu *CPU) dey(mem Memory, arg operand) {
 // adc adds a value from memory to the accumulator with carry. The carry flag is
 // set if the result is greater than 255. The overflow flag is set if the result
 // is greater than 127 or less than -128 (incorrect sign bit).
+// NB! There are different results for BIN / DEC operands
 func (cpu *CPU) adc(mem Memory, arg operand) {
-	var (
-		a = uint16(cpu.A)
-		b = uint16(mem.Read(arg.addr))
-	)
 
-	r := a + b + uint16(cpu.carried())
-	overflow := (a^b)&0x80 == 0 && (a^r)&0x80 != 0
+	// -- DEBUG
+	mode := ""
+	if flagDecimal == cpu.P&flagDecimal {
+		mode = "DEC "
+	}
 
-	cpu.setFlag(flagCarry, r > 0xFF)
-	cpu.setFlag(flagOverflow, overflow)
-	cpu.A = uint8(r)
-	cpu.setZN(cpu.A)
+	// WAS: No support for DEC operands
+
+	fmt.Printf("\n[ ADC %s] BEFORE A : %02X | OPERAND : %02X  | P : %02X", mode, cpu.A, mem.Read(arg.addr), cpu.P)
+
+	// ADC DEC: 99 + 99 + CARRY = 199 (CARRY = 1, A = 99)
+	if flagDecimal == cpu.P&flagDecimal {
+		a, errA := strconv.Atoi(fmt.Sprintf("%02X", cpu.A))
+		mem, errMem := strconv.Atoi(fmt.Sprintf("%02X", mem.Read(arg.addr)))
+		if errA != nil || errMem != nil {
+			cpu.A = 0
+			// TODO: Error Handling
+		} else {
+			sum := a + mem + int(cpu.carried())
+			lo := sum - (sum/10)*10     // == 0x09
+			hi := sum/10 - (sum/100)*10 // == 0x09 (mean 0x90)
+			hex := uint8(hi*16 + lo)    // == 0x99
+			cpu.A = hex
+			cpu.setZN(cpu.A)
+			cpu.setFlag(flagCarry, sum > 99)
+			// TODO: What about Overflow flag?
+			fmt.Printf("\n[ ADC %s] MIDDLE SUM = %d | HEX = %02X", mode, sum, hex)
+		}
+	} else {
+		a := uint16(cpu.A)
+		b := uint16(mem.Read(arg.addr))
+		r := a + b + uint16(cpu.carried())
+		overflow := (a^b)&0x80 == 0 && (a^r)&0x80 != 0
+		cpu.setFlag(flagCarry, r > 0xFF)
+		cpu.setFlag(flagOverflow, overflow)
+		cpu.A = uint8(r)
+		cpu.setZN(cpu.A)
+	}
+
+	fmt.Printf("\n[ ADC %s]  AFTER A : %02X | OPERAND : %02X | P : %02X", mode, cpu.A, mem.Read(arg.addr), cpu.P)
 
 	if arg.pageCross {
 		cpu.Halt++

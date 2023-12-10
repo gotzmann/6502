@@ -47,8 +47,10 @@ func main() {
 	// Assert(cpu.PC == 0x3469);
 
 	//for i := 0; i < 400; i++ {
-	// 85_716_338
-	maxCycles := uint64(85_500_000)
+	// BRK     : 85_716_338
+	// ADC DEC : 84_030_668
+	// SBC DEC : 84_042_280
+	maxCycles := uint64(84_042_300)
 	endOfFunctionalTest := uint16(0x3469)
 	for cpu.Cycles < maxCycles && cpu.PC != endOfFunctionalTest {
 		// fmt.Printf(" - %d - ", i)
