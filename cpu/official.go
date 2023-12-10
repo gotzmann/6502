@@ -170,7 +170,7 @@ func (cpu *CPU) lda(mem Memory, arg operand) {
 		}
 		fmt.Printf("\n\n=============================================================\n")
 	*/
-	fmt.Printf("\n[ LDA ] BEFORE A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
+	// fmt.Printf("\n[ LDA ] BEFORE A : %02X | X : %02X | RAM %04X : %02X", cpu.A, cpu.X, arg.addr, mem.Read(arg.addr))
 
 	cpu.A = mem.Read(arg.addr)
 	cpu.setZN(cpu.A)
@@ -287,13 +287,13 @@ func (cpu *CPU) pla(mem Memory, arg operand) {
 	cpu.A = cpu.pop()
 	cpu.setZN(cpu.A)
 
-	// fmt.Printf("\n[ PLA ] AFTER SP : %02X | A : %02X | FLAGS : %02X", cpu.SP, cpu.A, cpu.P)
+	fmt.Printf("\n[ PLA ]  AFTER SP : %02X | A : %02X | FLAGS : %02X", cpu.SP, cpu.A, cpu.P)
 }
 
 // php pushes the processor status onto the stack.
 func (cpu *CPU) php(mem Memory, arg operand) {
 
-	fmt.Printf("\n[ PHP ] BEFORE SP : %02X | P : %02X", cpu.SP, cpu.P)
+	// fmt.Printf("\n[ PHP ] BEFORE SP : %02X | P : %02X", cpu.SP, cpu.P)
 
 	// WAS: cpu.push(uint8(cpu.P) | 0x10)
 
@@ -303,7 +303,7 @@ func (cpu *CPU) php(mem Memory, arg operand) {
 
 	cpu.push(uint8(cpu.P) | flagReserved | flagBreak)
 
-	fmt.Printf("\n[ PHP ] AFTER SP : %02X | P : %02X", cpu.SP, cpu.P)
+	fmt.Printf("\n[ PHP ]  AFTER SP : %02X | P : %02X", cpu.SP, cpu.P)
 	/*
 	   fmt.Printf("\n\n== PHP ======================================================")
 
@@ -371,6 +371,7 @@ func (cpu *CPU) dey(mem Memory, arg operand) {
 // set if the result is greater than 255. The overflow flag is set if the result
 // is greater than 127 or less than -128 (incorrect sign bit).
 // NB! There are different results for BIN / DEC operands
+// See examples: http://6502.org/tutorials/decimal_mode.html
 func (cpu *CPU) adc(mem Memory, arg operand) {
 
 	// -- DEBUG
@@ -383,13 +384,15 @@ func (cpu *CPU) adc(mem Memory, arg operand) {
 
 	fmt.Printf("\n[ ADC %s] BEFORE A : %02X | OPERAND : %02X  | P : %02X", mode, cpu.A, mem.Read(arg.addr), cpu.P)
 
-	// ADC DEC: 99 + 99 + CARRY = 199 (CARRY = 1, A = 99)
+	// ADC DEC: 99 + 99 + CARRY = 199 (CARRY = 1, A = 0x99)
 	if flagDecimal == cpu.P&flagDecimal {
 		a, errA := strconv.Atoi(fmt.Sprintf("%02X", cpu.A))
 		mem, errMem := strconv.Atoi(fmt.Sprintf("%02X", mem.Read(arg.addr)))
 		if errA != nil || errMem != nil {
 			cpu.A = 0
+			cpu.setZN(cpu.A)
 			// TODO: Error Handling
+			fmt.Printf("\n[ SBC %s]  ERROR", mode)
 		} else {
 			sum := a + mem + int(cpu.carried())
 			lo := sum - (sum/10)*10     // == 0x09
@@ -399,6 +402,7 @@ func (cpu *CPU) adc(mem Memory, arg operand) {
 			cpu.setZN(cpu.A)
 			cpu.setFlag(flagCarry, sum > 99)
 			// TODO: What about Overflow flag?
+			// See: https://forums.atariage.com/applications/core/interface/file/attachment.php?id=163231
 			fmt.Printf("\n[ ADC %s] MIDDLE SUM = %d | HEX = %02X", mode, sum, hex)
 		}
 	} else {
@@ -419,19 +423,58 @@ func (cpu *CPU) adc(mem Memory, arg operand) {
 	}
 }
 
+// sbc subtracts numbers both in BIN and DEC modes.
+// See examples: http://6502.org/tutorials/decimal_mode.html
 func (cpu *CPU) sbc(mem Memory, arg operand) {
-	var (
-		a = uint16(cpu.A)
-		b = uint16(mem.Read(arg.addr))
-	)
 
-	r := a - b - uint16(1-cpu.carried())
-	overflow := (a^b)&0x80 != 0 && (a^r)&0x80 != 0
+	// -- DEBUG
+	mode := ""
+	if flagDecimal == cpu.P&flagDecimal {
+		mode = "DEC "
+	}
 
-	cpu.setFlag(flagCarry, r < 0x100)
-	cpu.setFlag(flagOverflow, overflow)
-	cpu.A = uint8(r)
-	cpu.setZN(cpu.A)
+	// WAS: No support for DEC operands
+
+	fmt.Printf("\n[ SBC %s] BEFORE A : %02X | OPERAND : %02X  | P : %02X", mode, cpu.A, mem.Read(arg.addr), cpu.P)
+
+	// SBC DEC: 90 - (99 + CARRY) = -10 (CARRY = 1, A = 0x10)
+	if flagDecimal == cpu.P&flagDecimal {
+		a, errA := strconv.Atoi(fmt.Sprintf("%02X", cpu.A))
+		mem, errMem := strconv.Atoi(fmt.Sprintf("%02X", mem.Read(arg.addr)))
+		if errA != nil || errMem != nil {
+			cpu.A = 0
+			cpu.setZN(cpu.A)
+			// TODO: Error Handling
+			fmt.Printf("\n[ SBC %s]  ERROR", mode)
+		} else {
+			// sub := a - (mem + int(cpu.carried()))
+			sub := a - mem - int(1-cpu.carried())
+			mod := uint(sub)
+			//sign := sub < 0
+			lo := mod - (mod/10)*10     // == 0x00
+			hi := mod/10 - (mod/100)*10 // == 0x01 (mean 0x10)
+			hex := uint8(hi*16 + lo)    // == 0x10
+			cpu.A = hex
+			//cpu.setZN(cpu.A)
+			cpu.setFlag(flagCarry, mem <= a)
+			cpu.setFlag(flagZero, sub == 0)
+			cpu.setFlag(flagNegative, sub < 0)
+			// TODO: What about Overflow flag?
+			// See: https://forums.atariage.com/applications/core/interface/file/attachment.php?id=163231
+			fmt.Printf("\n[ SBC %s] MIDDLE SUB = %d | HEX = %02X", mode, sub, hex)
+		}
+	} else {
+		a := uint16(cpu.A)
+		b := uint16(mem.Read(arg.addr))
+		r := a - b - uint16(1-cpu.carried())
+		overflow := (a^b)&0x80 != 0 && (a^r)&0x80 != 0
+		cpu.setFlag(flagCarry, r < 0x100)
+		cpu.setFlag(flagOverflow, overflow)
+		cpu.A = uint8(r)
+		cpu.setZN(cpu.A)
+	}
+
+	fmt.Printf("\n[ SBC %s]  AFTER A : %02X | OPERAND : %02X | P : %02X", mode, cpu.A, mem.Read(arg.addr), cpu.P)
 
 	if arg.pageCross {
 		cpu.Halt++
@@ -439,12 +482,16 @@ func (cpu *CPU) sbc(mem Memory, arg operand) {
 }
 
 func (cpu *CPU) and(mem Memory, arg operand) {
+	// fmt.Printf("\n[ AND ] BEFORE A : %02X | FLAGS : %02X", cpu.A, cpu.P)
+
 	cpu.A &= mem.Read(arg.addr)
 	cpu.setZN(cpu.A)
 
 	if arg.pageCross {
 		cpu.Halt++
 	}
+
+	// fmt.Printf("\n[ AND ]  AFTER A : %02X | FLAGS : %02X", cpu.A, cpu.P)
 }
 
 func (cpu *CPU) ora(mem Memory, arg operand) {

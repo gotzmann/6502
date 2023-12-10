@@ -50,7 +50,10 @@ func main() {
 	// BRK     : 85_716_338
 	// ADC DEC : 84_030_668
 	// SBC DEC : 84_042_280
-	maxCycles := uint64(84_042_300)
+	// SBC DEC : 84_030_700
+	// SBC DEC : 84_031_307
+	// SBC DEC : 84_031_318
+	maxCycles := uint64(85_720_000)
 	endOfFunctionalTest := uint16(0x3469)
 	for cpu.Cycles < maxCycles && cpu.PC != endOfFunctionalTest {
 		// fmt.Printf(" - %d - ", i)
