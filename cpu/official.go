@@ -425,6 +425,11 @@ func (cpu *CPU) adc(mem Memory, arg operand) {
 
 // sbc subtracts numbers both in BIN and DEC modes.
 // See examples: http://6502.org/tutorials/decimal_mode.html
+// The only cases when the half carry depends on the mode, is when then the nibble binary result is
+// between ten and fifteen inclusively (10 to 15). In this case the half carry would be set in decimal mode
+// but cleared in binary mode. If the result is smaller then the half carry would always be clear, and if the
+// result is higher than 15 it would always be set.
+// See: https://forums.atariage.com/applications/core/interface/file/attachment.php?id=163231
 func (cpu *CPU) sbc(mem Memory, arg operand) {
 
 	// -- DEBUG
@@ -445,22 +450,25 @@ func (cpu *CPU) sbc(mem Memory, arg operand) {
 			cpu.A = 0
 			cpu.setZN(cpu.A)
 			// TODO: Error Handling
+			// TODO: CARRY ?!
 			fmt.Printf("\n[ SBC %s]  ERROR", mode)
 		} else {
-			// sub := a - (mem + int(cpu.carried()))
 			sub := a - mem - int(1-cpu.carried())
-			mod := uint(sub)
-			//sign := sub < 0
-			lo := mod - (mod/10)*10     // == 0x00
-			hi := mod/10 - (mod/100)*10 // == 0x01 (mean 0x10)
+			cpu.setFlag(flagCarry, sub >= 0)
+			if sub < 0 {
+				sub += 100 // == 100 - abs(sub)
+			}
+			// -- http://cavaliercoder.com/blog/optimized-abs-for-int64-in-go.html
+			// mod := sub >> 63
+			// mod = (sub ^ mod) - mod
+			lo := sub - (sub/10)*10     // == 0x00
+			hi := sub/10 - (sub/100)*10 // == 0x01 (mean 0x10)
 			hex := uint8(hi*16 + lo)    // == 0x10
 			cpu.A = hex
-			//cpu.setZN(cpu.A)
-			cpu.setFlag(flagCarry, mem <= a)
-			cpu.setFlag(flagZero, sub == 0)
-			cpu.setFlag(flagNegative, sub < 0)
+			// cpu.setFlag(flagZero, sub == 0)
+			// cpu.setFlag(flagNegative, sub < 0)
+			cpu.setZN(cpu.A) // TODO: setZN() without cpu.A
 			// TODO: What about Overflow flag?
-			// See: https://forums.atariage.com/applications/core/interface/file/attachment.php?id=163231
 			fmt.Printf("\n[ SBC %s] MIDDLE SUB = %d | HEX = %02X", mode, sub, hex)
 		}
 	} else {
@@ -597,10 +605,10 @@ func (cpu *CPU) bit(mem Memory, arg operand) {
 
 func (cpu *CPU) cmp(mem Memory, arg operand) {
 	data := uint16(cpu.A) - uint16(mem.Read(arg.addr))
-	cpu.setFlag(flagCarry, data < 0x100)
+	cpu.setFlag(flagCarry, data < 0x100) // TODO: What about DEC mode?
 	cpu.setZN(uint8(data))
 
-	// fmt.Printf("\n[ CMP ] A : %02X | %04X : %02X | A - MEM = %02X", cpu.A, arg.addr, mem.Read(arg.addr), uint8(data))
+	fmt.Printf("\n[ CMP ] A : %02X | OPERAND %04X : %02X | FLAGS: %02X | DIFF : %d", cpu.A, arg.addr, mem.Read(arg.addr), cpu.P, data)
 
 	if arg.pageCross {
 		cpu.Halt++
