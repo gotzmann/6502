@@ -3,6 +3,7 @@
 launch.json
 __debug_bin
 .DS_Store
+tmp/
 
 *.exe
 *.exe~
